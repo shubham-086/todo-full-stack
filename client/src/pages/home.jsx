@@ -19,26 +19,25 @@ function TaskManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const fetchTodos = () => {
-    let data = localStorage.getItem("todos");
-    if (data) {
-      setTodos(JSON.parse(data));
+  const fetchTodos = async () => {
+    try {
+      let res = await axios.get("http://localhost:3000/api/todos", { withCredentials: true });
+      // console.log(res.data);
+      setTodos(res.data);
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
     }
   };
 
-  useEffect(fetchTodos, []);
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
-  const handleTodoStatus = () => {
-    let completed = todos.filter((todo) => todo.status === "completed");
-    let pending = todos.filter((todo) => todo.status === "pending");
-    let due = todos.filter((todo) => new Date(todo.dueDate) < new Date());
-
-    setCompletedTodos(completed);
-    setPendingTodos(pending);
-    setDueTodos(due);
-  };
-
-  useEffect(handleTodoStatus, [todos]);
+  useEffect(() => {
+    setCompletedTodos(todos.filter((t) => t.status === "completed"));
+    setPendingTodos(todos.filter((t) => t.status === "pending"));
+    setDueTodos(todos.filter((t) => new Date(t.dueDate) < new Date()));
+  }, [todos]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -86,14 +85,12 @@ function TaskManager() {
         return;
       }
 
-      const res = await axios.post("http://localhost:3000/api/todos", task, {
+      await axios.post("http://localhost:3000/api/todos", task, {
         withCredentials: true,
       });
 
-      console.log(res.data);
-      alert("Task successfully created!");
-
       resetForm();
+      await fetchTodos();
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
     }
@@ -110,26 +107,32 @@ function TaskManager() {
     setErrors({});
   };
 
-  const handleCompleted = (id) => {
-    const updatedTodos = todos.map((todo) => {
-      return todo.id === id
-        ? { ...todo, status: "completed", updatedAt: new Date().toISOString() }
-        : todo;
-    });
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
+  const handleCompleted = async (id) => {
+    try {
+      await axios.patch(
+        `http://localhost:3000/api/todos/${id}`,
+        { status: "completed" },
+        { withCredentials: true },
+      );
+      await fetchTodos();
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
+    }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      const filteredTodos = todos.filter((todo) => todo.id !== id);
-      setTodos(filteredTodos);
-      localStorage.setItem("todos", JSON.stringify(filteredTodos));
+  const handleDelete = async (id) => {
+    try {
+      if (window.confirm("Are you sure you want to delete this task?")) {
+        await axios.delete(`http://localhost:3000/api/todos/${id}`, { withCredentials: true });
+        await fetchTodos();
+      }
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
     }
   };
 
   const handleEdit = (id) => {
-    const todo = todos.find((todo) => todo.id === id);
+    const todo = todos.find((todo) => todo._id === id);
     if (todo) {
       // Format date for input field
       const formattedDueDate = todo.dueDate
@@ -141,18 +144,18 @@ function TaskManager() {
     }
   };
 
-  const handleSave = () => {
-    if (!validateForm()) {
-      return;
+  const handleSave = async () => {
+    try {
+      if (!validateForm()) {
+        return;
+      }
+      await axios.put(`http://localhost:3000/api/todos/${task._id}`, task, {
+        withCredentials: true,
+      });
+      await fetchTodos();
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
     }
-
-    const updatedTodos = todos.map((todo) => {
-      return todo.id === task.id ? { ...task, updatedAt: new Date().toISOString() } : todo;
-    });
-
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    resetForm();
   };
 
   const getPriorityColor = (priority) => {
@@ -342,7 +345,7 @@ function TaskManager() {
               {activeBtn === "pending" &&
                 pendingTodos.map((todo) => (
                   <Task
-                    key={todo.id}
+                    key={todo._id}
                     todo={todo}
                     handleCompleted={handleCompleted}
                     handleDelete={handleDelete}
@@ -361,7 +364,7 @@ function TaskManager() {
               {activeBtn === "completed" &&
                 completedTodos.map((todo) => (
                   <Task
-                    key={todo.id}
+                    key={todo._id}
                     todo={todo}
                     handleCompleted={handleCompleted}
                     handleDelete={handleDelete}
@@ -379,7 +382,7 @@ function TaskManager() {
               {activeBtn === "due" &&
                 dueTodos.map((todo) => (
                   <Task
-                    key={todo.id}
+                    key={todo._id}
                     todo={todo}
                     handleCompleted={handleCompleted}
                     handleDelete={handleDelete}

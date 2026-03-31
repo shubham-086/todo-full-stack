@@ -81,7 +81,7 @@ function Task({
             <div className="flex gap-2">
               {todo.status !== "completed" && (
                 <button
-                  onClick={() => handleCompleted(todo.id)}
+                  onClick={() => handleCompleted(todo._id)}
                   className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                   title="Mark as complete"
                 >
@@ -96,7 +96,7 @@ function Task({
                 </button>
               )}
               <button
-                onClick={() => handleEdit(todo.id)}
+                onClick={() => handleEdit(todo._id)}
                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Edit task"
               >
@@ -110,7 +110,7 @@ function Task({
                 </svg>
               </button>
               <button
-                onClick={() => handleDelete(todo.id)}
+                onClick={() => handleDelete(todo._id)}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Delete task"
               >
